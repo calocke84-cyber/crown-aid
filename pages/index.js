@@ -118,7 +118,7 @@ export default function CrownAid() {
       const txRes = await fetch("/api/hair-transform", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userDataUrl: userPhoto, wigDesc: desc }),
+        body: JSON.stringify({ userDataUrl: userPhoto, wigDataUrl: wigPhoto, wigDesc: desc }),
       });
       if (!txRes.ok) throw new Error(await txRes.text());
       const { resultUrl } = await txRes.json();
