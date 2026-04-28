@@ -62,7 +62,16 @@ if (!taskId) throw new Error("VModel submit failed: " + JSON.stringify(submitDat
 
     for (let i = 0; i < 30; i++) {
       await sleep(3000);
-      const pollRes = await fetch(`https://api.vmodel.ai/api/tasks/v1/${taskId}`, {
+      const pollData = await pollRes.json();
+const output = pollData.result?.output || pollData.output;
+const status = pollData.result?.status || pollData.status;
+
+if (status === "succeeded" && output?.[0]) {
+  return res.status(200).json({ resultUrl: output[0] });
+}
+if (status === "failed") {
+  return res.status(500).json({ error: "VModel failed: " + JSON.stringify(pollData) });
+}
         headers: { "Authorization": `Bearer ${VMODEL_TOKEN}` },
       });
       const pollData = await pollRes.json();
