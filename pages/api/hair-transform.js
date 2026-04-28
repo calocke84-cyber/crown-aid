@@ -5,19 +5,19 @@ export const config = {
 
 const VMODEL_TOKEN = "uDmN-wgjm2WStewP2zwLZgVj5SoBFA9jg5Ls-eaDD7IrTVJw6MDVlmsvJBebRNW3rZsu212GaZ2yZZEEkY8fVg==";
 const VMODEL_VERSION = "5c0440717a995b0bbd93377bd65dbb4fe360f67967c506aa6bd8f6b660733a7e";
+const UPLOAD_IO_KEY = "secret_223k2dt67khWHxHMFGaYxNEaK4ew";
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-// Upload base64 image to a temp public URL using upload.io (free)
 const uploadImage = async (dataUrl) => {
   const base64 = dataUrl.split(",")[1];
   const mimeType = dataUrl.split(";")[0].replace("data:", "");
   const buffer = Buffer.from(base64, "base64");
 
-  const res = await fetch("https://api.upload.io/v2/accounts/FW25b1p/uploads/binary", {
+  const res = await fetch("https://api.upload.io/v2/accounts/223k2dt/uploads/binary", {
     method: "POST",
     headers: {
-      "Authorization": "Bearer public_FW25b1p2GxJnbB8msURd7QjqcMpq",
+      "Authorization": `Bearer ${UPLOAD_IO_KEY}`,
       "Content-Type": mimeType,
     },
     body: buffer,
@@ -35,13 +35,11 @@ export default async function handler(req, res) {
   if (!userDataUrl || !wigDataUrl) return res.status(400).json({ error: "Both images required" });
 
   try {
-    // Upload both images to get public URLs
     const [userUrl, wigUrl] = await Promise.all([
       uploadImage(userDataUrl),
       uploadImage(wigDataUrl),
     ]);
 
-    // Submit to VModel
     const submitRes = await fetch("https://api.vmodel.ai/api/tasks/v1/create", {
       method: "POST",
       headers: {
@@ -51,8 +49,8 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         version: VMODEL_VERSION,
         input: {
-          source: wigUrl,   // wig = reference hairstyle
-          target: userUrl,  // user = person to transform
+          source: wigUrl,
+          target: userUrl,
           disable_safety_checker: false,
         },
       }),
@@ -63,7 +61,6 @@ export default async function handler(req, res) {
 
     const taskId = submitData.task_id;
 
-    // Poll for result
     for (let i = 0; i < 30; i++) {
       await sleep(3000);
       const pollRes = await fetch(`https://api.vmodel.ai/api/tasks/v1/${taskId}`, {
@@ -75,11 +72,11 @@ export default async function handler(req, res) {
         return res.status(200).json({ resultUrl: pollData.output[0] });
       }
       if (pollData.status === "failed") {
-        return res.status(500).json({ error: "VModel transformation failed: " + JSON.stringify(pollData) });
+        return res.status(500).json({ error: "VModel failed: " + JSON.stringify(pollData) });
       }
     }
 
-    res.status(504).json({ error: "Timed out waiting for result" });
+    res.status(504).json({ error: "Timed out" });
   } catch (e) {
     console.error("hair-transform error:", e);
     res.status(500).json({ error: e.message });
