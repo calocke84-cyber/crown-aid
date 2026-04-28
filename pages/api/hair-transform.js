@@ -57,9 +57,8 @@ export default async function handler(req, res) {
     });
 
     const submitData = await submitRes.json();
-    if (!submitData.task_id) throw new Error("VModel submit failed: " + JSON.stringify(submitData));
-
-    const taskId = submitData.task_id;
+    const taskId = submitData.result?.task_id || submitData.task_id;
+if (!taskId) throw new Error("VModel submit failed: " + JSON.stringify(submitData));
 
     for (let i = 0; i < 30; i++) {
       await sleep(3000);
